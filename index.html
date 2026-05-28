@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>7 Dies</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0f;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+            cursor: none;
+        }
+        
+        #canvas-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        
+        .cursor {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transition: transform 0.05s ease;
+            mix-blend-mode: difference;
+        }
+        
+        .cursor-follower {
+            position: fixed;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9998;
+            transition: transform 0.15s ease, width 0.3s ease, height 0.3s ease, background 0.3s ease;
+        }
+        
+        .cursor-ring {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            border: 1px solid rgba(233, 69, 96, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9997;
+            transition: transform 0.2s ease;
+        }
+        
+        .particle {
+            position: fixed;
+            pointer-events: none;
+            border-radius: 50%;
+            animation: particle-fade 1.5s ease-out forwards;
+        }
+        
+        @keyframes particle-fade {
+            0% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0) rotate(360deg);
+            }
+        }
+        
+        .container {
+            text-align: center;
+            color: white;
+            position: relative;
+            z-index: 10;
+        }
+        
+        h1 {
+            font-size: 10rem;
+            font-weight: 900;
+            letter-spacing: 0.15em;
+            position: relative;
+            display: inline-block;
+            cursor: none;
+            transition: transform 0.1s ease;
+            text-shadow: 0 0 30px rgba(233, 69, 96, 0.5);
+        }
+        
+        h1 span {
+            display: inline-block;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        h1 span::before {
+            content: attr(data-char);
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: #e94560;
+            opacity: 0;
+            transition: all 0.2s ease;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+        }
+        
+        h1 span::after {
+            content: attr(data-char);
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            color: #00ff88;
+            opacity: 0;
+            transition: all 0.2s ease;
+            transform: translateY(0) scale(1);
+            z-index: -1;
+        }
+        
+        h1 span:hover::before {
+            opacity: 1;
+            transform: translateY(-15px) scale(1.3);
+            filter: blur(2px);
+        }
+        
+        h1 span:hover::after {
+            opacity: 0.5;
+            transform: translateY(15px) scale(1.1);
+        }
+        
+        h1 span:hover {
+            transform: translateY(-10px) scale(1.2);
+            color: #e94560;
+            text-shadow: 
+                0 0 20px #e94560,
+                0 0 40px #e94560,
+                0 0 60px #e94560,
+                0 0 80px #e94560,
+                0 0 100px #e94560;
+        }
+        
+        .glow-effect {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(233, 69, 96, 0.4) 0%, rgba(102, 126, 234, 0.2) 30%, transparent 70%);
+            pointer-events: none;
+            z-index: 1;
+            transform: translate(-50%, -50%);
+            transition: opacity 0.3s ease;
+            filter: blur(30px);
+        }
+        
+        .secondary-glow {
+            position: fixed;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.3) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 1;
+            transform: translate(-50%, -50%);
+            filter: blur(20px);
+        }
+        
+        .ripple {
+            position: fixed;
+            border-radius: 50%;
+            background: rgba(233, 69, 96, 0.5);
+            pointer-events: none;
+            z-index: 5;
+            animation: ripple-effect 1s ease-out forwards;
+            border: 2px solid rgba(233, 69, 96, 0.8);
+        }
+        
+        @keyframes ripple-effect {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+            100% {
+                width: 200px;
+                height: 200px;
+                opacity: 0;
+            }
+        }
+        
+        .magnetic-field {
+            position: fixed;
+            width: 250px;
+            height: 250px;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 2;
+            transform: translate(-50%, -50%);
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        
+        .magnetic-field::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            border: 1px solid rgba(233, 69, 96, 0.3);
+            border-radius: 50%;
+            animation: pulse-reverse 1.5s infinite ease-in-out;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.4;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.3);
+                opacity: 0.1;
+            }
+        }
+        
+        @keyframes pulse-reverse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.3;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(0.7);
+                opacity: 0.1;
+            }
+        }
+        
+        .trail {
+            position: fixed;
+            width: 15px;
+            height: 15px;
+            background: linear-gradient(45deg, #e94560, #00ff88, #667eea);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 3;
+            animation: trail-fade 0.8s ease-out forwards;
+            box-shadow: 0 0 10px rgba(233, 69, 96, 0.8);
+        }
+        
+        @keyframes trail-fade {
+            0% {
+                opacity: 1;
+                transform: scale(1) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: scale(0) rotate(180deg);
+            }
+        }
+        
+        .shockwave {
+            position: fixed;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            pointer-events: none;
+            z-index: 4;
+            animation: shockwave-effect 0.8s ease-out forwards;
+        }
+        
+        @keyframes shockwave-effect {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 1;
+            }
+            100% {
+                width: 300px;
+                height: 300px;
+                opacity: 0;
+            }
+        }
+        
+        .energy-burst {
+            position: fixed;
+            pointer-events: none;
+            z-index: 6;
+            animation: energy-burst-effect 0.5s ease-out forwards;
+        }
+        
+        @keyframes energy-burst-effect {
+            0% {
+                transform: scale(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(2) rotate(180deg);
+                opacity: 0;
+            }
+        }
+        
+        .text-glow {
+            position: fixed;
+            pointer-events: none;
+            z-index: 7;
+            font-size: 2rem;
+            font-weight: bold;
+            color: rgba(255, 255, 255, 0.8);
+            animation: text-glow-fade 1s ease-out forwards;
+            text-shadow: 0 0 10px rgba(233, 69, 96, 0.8);
+        }
+        
+        @keyframes text-glow-fade {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-50px) scale(1.5);
+            }
+        }
+        
+        .geometric-shape {
+            position: fixed;
+            pointer-events: none;
+            z-index: 8;
+            animation: geometric-spin 2s linear infinite;
+        }
+        
+        @keyframes geometric-spin {
+            0% {
+                transform: rotate(0deg) scale(1);
+            }
+            50% {
+                transform: rotate(180deg) scale(1.5);
+            }
+            100% {
+                transform: rotate(360deg) scale(1);
+            }
+        }
+        
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 9;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+        
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+            background: radial-gradient(circle, transparent 40%, rgba(0, 0, 0, 0.8) 100%);
+        }
+        
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 11;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.1),
+                rgba(0, 0, 0, 0.1) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas-bg"></canvas>
+    
+    <div class="noise-overlay"></div>
+    <div class="vignette"></div>
+    <div class="scanline"></div>
+    
+    <div class="cursor" style="left: 1515.95px; top: 603.998px;"></div>
+    <div class="cursor-follower" style="left: 1503.82px; top: 593.851px;"></div>
+    <div class="cursor-ring" style="left: 1474.3px; top: 583.559px;"></div>
+    <div class="glow-effect" style="left: 1526px; top: 614px;"></div>
+    <div class="secondary-glow" style="left: 1526px; top: 614px;"></div>
+    <div class="magnetic-field" style="left: 1526px; top: 614px;"></div>
+    
+    <div class="container" style="left: -19px; top: -2px;">
+        <h1>
+            <span data-char="7">7</span>
+            <span data-char=" "> </span>
+            <span data-char="d">d</span>
+            <span data-char="i">i</span>
+            <span data-char="e">e</span>
+            <span data-char="s">s</span>
+        </h1>
+    </div>
+    
+    <script>
+        // Canvas background con efectos reactivos
+        const canvas = document.getElementById('canvas-bg');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let particles = [];
+        let connections = [];
+        let mouseX = 0, mouseY = 0;
+        let targetMouseX = 0, targetMouseY = 0;
+        
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initParticles();
+        }
+        
+        function initParticles() {
+            particles = [];
+            const particleCount = Math.floor((width * height) / 8000);
+            
+            for (let i = 0; i < particleCount; i++) {
+                const originalX = Math.random() * width;
+                const originalY = Math.random() * height;
+                
+                particles.push({
+                    x: originalX,
+                    y: originalY,
+                    originalX: originalX,
+                    originalY: originalY,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    radius: Math.random() * 2 + 1,
+                    color: `hsl(${Math.random() * 60 + 330}, 70%, 50%)`,
+                    originalRadius: Math.random() * 2 + 1
+                });
+            }
+        }
+        
+        function drawParticles() {
+            ctx.fillStyle = 'rgba(10, 10, 15, 0.1)';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Actualizar posición del ratón con suavizado
+            mouseX += (targetMouseX - mouseX) * 0.1;
+            mouseY += (targetMouseY - mouseY) * 0.1;
+            
+            particles.forEach((particle, i) => {
+                // Reacción al ratón
+                const dx = mouseX - particle.x;
+                const dy = mouseY - particle.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 200) {
+                    const force = (200 - distance) / 200;
+                    particle.vx -= (dx / distance) * force * 0.5;
+                    particle.vy -= (dy / distance) * force * 0.5;
+                    particle.radius = particle.originalRadius * (1 + force * 2);
+                } else {
+                    particle.radius += (particle.originalRadius - particle.radius) * 0.1;
+                    
+                    // Fuerza de restauración a posición original
+                    const returnDx = particle.originalX - particle.x;
+                    const returnDy = particle.originalY - particle.y;
+                    const returnDistance = Math.sqrt(returnDx * returnDx + returnDy * returnDy);
+                    
+                    if (returnDistance > 0.1) {
+                        particle.vx += (returnDx / returnDistance) * 0.02;
+                        particle.vy += (returnDy / returnDistance) * 0.02;
+                    }
+                    
+                    // Amortiguación
+                    particle.vx *= 0.95;
+                    particle.vy *= 0.95;
+                }
+                
+                // Movimiento base
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                
+                // Dibujar partícula
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
+                ctx.fillStyle = particle.color;
+                ctx.fill();
+                
+                // Conexiones cercanas
+                particles.slice(i + 1).forEach(other => {
+                    const dx = particle.x - other.x;
+                    const dy = particle.y - other.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 120) {
+                        ctx.beginPath();
+                        ctx.moveTo(particle.x, particle.y);
+                        ctx.lineTo(other.x, other.y);
+                        ctx.strokeStyle = `rgba(233, 69, 96, ${1 - dist / 120})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                });
+                
+                // Conexiones con el ratón
+                if (distance < 250) {
+                    ctx.beginPath();
+                    ctx.moveTo(particle.x, particle.y);
+                    ctx.lineTo(mouseX, mouseY);
+                    ctx.strokeStyle = `rgba(0, 255, 136, ${1 - distance / 250})`;
+                    ctx.lineWidth = 0.8;
+                    ctx.stroke();
+                }
+            });
+            
+            // Efecto de ondas desde el ratón
+            const time = Date.now() * 0.001;
+            for (let i = 0; i < 3; i++) {
+                const waveRadius = ((time * 100 + i * 50) % 300);
+                const alpha = 1 - waveRadius / 300;
+                
+                ctx.beginPath();
+                ctx.arc(mouseX, mouseY, waveRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(233, 69, 96, ${alpha * 0.3})`;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            requestAnimationFrame(drawParticles);
+        }
+        
+        window.addEventListener('resize', resize);
+        resize();
+        drawParticles();
+        
+        // Cursor personalizado
+        const cursor = document.querySelector('.cursor');
+        const cursorFollower = document.querySelector('.cursor-follower');
+        const cursorRing = document.querySelector('.cursor-ring');
+        const glowEffect = document.querySelector('.glow-effect');
+        const secondaryGlow = document.querySelector('.secondary-glow');
+        const magneticField = document.querySelector('.magnetic-field');
+        
+        let cursorX = 0, cursorY = 0;
+        let followerX = 0, followerY = 0;
+        let ringX = 0, ringY = 0;
+        
+        document.addEventListener('mousemove', (e) => {
+            targetMouseX = e.clientX;
+            targetMouseY = e.clientY;
+        });
+        
+        function animateCursor() {
+            cursorX += (targetMouseX - cursorX) * 0.3;
+            cursorY += (targetMouseY - cursorY) * 0.3;
+            followerX += (targetMouseX - followerX) * 0.15;
+            followerY += (targetMouseY - followerY) * 0.15;
+            ringX += (targetMouseX - ringX) * 0.08;
+            ringY += (targetMouseY - ringY) * 0.08;
+            
+            cursor.style.left = cursorX - 10 + 'px';
+            cursor.style.top = cursorY - 10 + 'px';
+            cursorFollower.style.left = followerX - 20 + 'px';
+            cursorFollower.style.top = followerY - 20 + 'px';
+            cursorRing.style.left = ringX - 30 + 'px';
+            cursorRing.style.top = ringY - 30 + 'px';
+            glowEffect.style.left = targetMouseX + 'px';
+            glowEffect.style.top = targetMouseY + 'px';
+            secondaryGlow.style.left = targetMouseX + 'px';
+            secondaryGlow.style.top = targetMouseY + 'px';
+            magneticField.style.left = targetMouseX + 'px';
+            magneticField.style.top = targetMouseY + 'px';
+            
+            requestAnimationFrame(animateCursor);
+        }
+        animateCursor();
+        
+        // Efectos click
+        document.addEventListener('click', (e) => {
+            createRipple(e.clientX, e.clientY);
+            createShockwave(e.clientX, e.clientY);
+            createParticles(e.clientX, e.clientY, 15);
+            createEnergyBurst(e.clientX, e.clientY);
+            createTextGlow(e.clientX, e.clientY);
+            createGeometricShapes(e.clientX, e.clientY);
+        });
+        
+        function createRipple(x, y) {
+            const ripple = document.createElement('div');
+            ripple.className = 'ripple';
+            ripple.style.left = x - 100 + 'px';
+            ripple.style.top = y - 100 + 'px';
+            document.body.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 1000);
+        }
+        
+        function createShockwave(x, y) {
+            const shockwave = document.createElement('div');
+            shockwave.className = 'shockwave';
+            shockwave.style.left = x - 150 + 'px';
+            shockwave.style.top = y - 150 + 'px';
+            document.body.appendChild(shockwave);
+            setTimeout(() => shockwave.remove(), 800);
+        }
+        
+        function createEnergyBurst(x, y) {
+            const burst = document.createElement('div');
+            burst.className = 'energy-burst';
+            burst.style.left = x - 50 + 'px';
+            burst.style.top = y - 50 + 'px';
+            burst.style.width = '100px';
+            burst.style.height = '100px';
+            burst.style.background = `radial-gradient(circle, rgba(233, 69, 96, 0.8) 0%, transparent 70%)`;
+            burst.style.borderRadius = '50%';
+            document.body.appendChild(burst);
+            setTimeout(() => burst.remove(), 500);
+        }
+        
+        function createTextGlow(x, y) {
+            const texts = ['7', 'dies', '!', '✦', '◈'];
+            const text = texts[Math.floor(Math.random() * texts.length)];
+            const textGlow = document.createElement('div');
+            textGlow.className = 'text-glow';
+            textGlow.textContent = text;
+            textGlow.style.left = x + 'px';
+            textGlow.style.top = y + 'px';
+            document.body.appendChild(textGlow);
+            setTimeout(() => textGlow.remove(), 1000);
+        }
+        
+        function createGeometricShapes(x, y) {
+            for (let i = 0; i < 5; i++) {
+                const shape = document.createElement('div');
+                shape.className = 'geometric-shape';
+                const size = Math.random() * 30 + 10;
+                shape.style.width = size + 'px';
+                shape.style.height = size + 'px';
+                shape.style.left = x + (Math.random() - 0.5) * 100 + 'px';
+                shape.style.top = y + (Math.random() - 0.5) * 100 + 'px';
+                shape.style.border = `2px solid ${['#e94560', '#00ff88', '#667eea'][Math.floor(Math.random() * 3)]}`;
+                shape.style.animationDelay = i * 0.1 + 's';
+                document.body.appendChild(shape);
+                setTimeout(() => shape.remove(), 2000);
+            }
+        }
+        
+        // Partículas al mover el ratón
+        let particleCount = 0;
+        document.addEventListener('mousemove', (e) => {
+            if (particleCount % 2 === 0) {
+                createParticle(e.clientX, e.clientY);
+            }
+            if (particleCount % 3 === 0) {
+                createTrail(e.clientX, e.clientY);
+            }
+            particleCount++;
+        });
+        
+        function createParticle(x, y) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            
+            const size = Math.random() * 10 + 3;
+            const colors = ['#e94560', '#00ff88', '#667eea', '#ffffff', '#ff6b6b', '#4ecdc4'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            particle.style.width = size + 'px';
+            particle.style.height = size + 'px';
+            particle.style.background = color;
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
+            particle.style.boxShadow = `0 0 ${size * 3}px ${color}, 0 0 ${size * 6}px ${color}`;
+            
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = Math.random() * 80 + 30;
+            const vx = Math.cos(angle) * velocity;
+            const vy = Math.sin(angle) * velocity;
+            
+            particle.style.transform = `translate(${vx}px, ${vy}px)`;
+            
+            document.body.appendChild(particle);
+            setTimeout(() => particle.remove(), 1500);
+        }
+        
+        function createParticles(x, y, count) {
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => createParticle(x, y), i * 15);
+            }
+        }
+        
+        function createTrail(x, y) {
+            const trail = document.createElement('div');
+            trail.className = 'trail';
+            trail.style.left = x - 7.5 + 'px';
+            trail.style.top = y - 7.5 + 'px';
+            document.body.appendChild(trail);
+            setTimeout(() => trail.remove(), 800);
+        }
+        
+        // Efecto hover en letras
+        const letters = document.querySelectorAll('h1 span');
+        letters.forEach(letter => {
+            letter.addEventListener('mouseenter', () => {
+                cursorFollower.style.width = '80px';
+                cursorFollower.style.height = '80px';
+                cursorFollower.style.background = 'rgba(233, 69, 96, 0.4)';
+                cursorRing.style.width = '100px';
+                cursorRing.style.height = '100px';
+                cursorRing.style.borderColor = 'rgba(233, 69, 96, 0.8)';
+            });
+            
+            letter.addEventListener('mouseleave', () => {
+                cursorFollower.style.width = '40px';
+                cursorFollower.style.height = '40px';
+                cursorFollower.style.background = 'rgba(255, 255, 255, 0.1)';
+                cursorRing.style.width = '60px';
+                cursorRing.style.height = '60px';
+                cursorRing.style.borderColor = 'rgba(233, 69, 96, 0.5)';
+            });
+        });
+        
+        // Efecto magnético en el texto
+        const h1 = document.querySelector('h1');
+        h1.addEventListener('mousemove', (e) => {
+            const rect = h1.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+            
+            h1.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px) rotate(${x * 0.02}deg)`;
+        });
+        
+        h1.addEventListener('mouseleave', () => {
+            h1.style.transform = 'translate(0, 0) rotate(0deg)';
+        });
+        
+        // Efecto de doble click
+        let lastClick = 0;
+        document.addEventListener('dblclick', (e) => {
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    createParticle(e.clientX + (Math.random() - 0.5) * 100, e.clientY + (Math.random() - 0.5) * 100);
+                }, i * 20);
+            }
+        });
+    </script>
+</body>
+</html>
